@@ -378,7 +378,7 @@ window.addEventListener('beforeunload',function(e){if(S&&snapshot()!==ORIG){e.pr
 
 var LOGO_FALLBACK='';
 /* Borrow the logo from the calculator page so this file stays small. */
-fetch('munim-gst-calculator.html',{cache:'no-store'}).then(function(r){return r.text();}).then(function(t){var m=t.match(/var LOGO='(data:image[^']+)'/);if(m){LOGO_FALLBACK=m[1];if(S)renderGeneral();}}).catch(function(){});
+fetch('munim-gst-calculator_1_2.html',{cache:'no-store'}).then(function(r){return r.text();}).then(function(t){var m=t.match(/var LOGO='(data:image[^']+)'/);if(m){LOGO_FALLBACK=m[1];if(S)renderGeneral();}}).catch(function(){});
 
 var saved=load('munim_admin_token');
 start(true).then(function(){if(saved){$('tok').value=saved;$('remember').checked=true;connect();}}).catch(function(e){$('rules').innerHTML='';$('rules').appendChild(el('div',{cls:'empty',text:'Could not load current prices ('+e.message+'). Reload the page.'}));});
