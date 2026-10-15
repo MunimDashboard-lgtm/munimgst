@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<!--
+Munim Price Calculator - standalone page (no login, no server needed).
+Rates are loaded live from config.json. Edit them from admin.html (no code needed). The DEF block below is only a fallback.
+Each rule has a type: flat (fixed fee), band (list of bands), meter (rate above an included amount), toggle (yes/no add-on).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Munim Price Calculator</title><link rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap'>
+<style>
+:root{--bg:#f4f7fc;--card:#fff;--text:#333333;--muted:#606060;--line:#dfe6f0;--accent:#3575E2;--on:#fff;--soft:#e8f0fc;--navy:#fff;--gold:#3575E2;--bad:#c62828;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1a2b;--card:#16263d;--text:#e8eef8;--muted:#a9b6c9;--line:#2a3d58;--accent:#5aa0ff;--on:#0b1220;--soft:#1b2f4d;--navy:#0a1525;--gold:#FFC619;--bad:#ff8a80;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1a2b;--card:#16263d;--text:#e8eef8;--muted:#a9b6c9;--line:#2a3d58;--accent:#5aa0ff;--on:#0b1220;--soft:#1b2f4d;--navy:#0a1525;--gold:#FFC619;--bad:#ff8a80;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 Poppins,-apple-system,'Segoe UI',Roboto,Arial,sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:22px;margin:0 0 4px}h2{font-size:17px;margin:0 0 12px}h3{font-size:14px;margin:14px 0 6px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.sub{color:var(--muted);margin:0 0 16px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media (max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px;max-width:100%}
+.field{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--line)}
+.field:last-child{border-bottom:0}.field label{flex:1}.field small{display:block;color:var(--muted);font-size:12px}
+input,select,textarea{padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);font:inherit;max-width:100%}
+input[type=number]{width:120px;text-align:right}select{width:150px}input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.kpi{background:var(--soft);border-radius:10px;padding:12px}.kpi span{display:block;color:var(--muted);font-size:12px}.kpi b{font-size:20px}
+.kpi.main{grid-column:1/-1;background:var(--accent);color:var(--on)}.kpi.main span{color:inherit;opacity:.85}.kpi.main b{font-size:28px}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:600}.n{text-align:right;white-space:nowrap}
+tr.tot td{font-weight:700;border-top:2px solid var(--line)}.scroll{overflow-x:auto}.scroll table{min-width:520px}
+.muted{color:var(--muted)}.note{font-size:13px;color:var(--muted)}a{color:var(--accent)}code{background:var(--soft);padding:1px 5px;border-radius:5px;font-size:13px}
+ol,ul{padding-left:20px;margin:6px 0}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:8px;padding:7px 12px;font:inherit;cursor:pointer}
+.btn.pri{background:var(--accent);color:var(--on);border-color:var(--accent)}.btn.sm{padding:3px 8px;font-size:13px}.btn.del{color:var(--bad)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0}
+.rule{border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0}
+.rule .row label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:2px}
+.rule input[type=text]{width:100%;max-width:260px}.tag{font-size:11px;background:var(--soft);border-radius:6px;padding:2px 6px;color:var(--muted)}
+.msg{font-size:13px;margin-top:8px}.err{color:var(--bad)}
+a.btn{text-decoration:none;display:inline-block}
+.hd{background:#fff;color:#333;border-bottom:4px solid #3575E2}.hd .in{max-width:1000px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{height:44px;max-width:200px;object-fit:contain;display:block}.wm{font-weight:600;font-size:24px}.hd .btn{background:#fff;color:#3575E2;border-color:#3575E2}
+.lb{display:flex;flex-direction:column;font-size:12px;color:var(--muted);gap:2px}.lb input,.lb select{width:190px;text-align:left}
+.sheet{background:#fff;color:#333333;border:1px solid #dfe6f0;border-top:6px solid #3575E2;border-radius:12px;padding:24px;margin-bottom:16px;font-size:14px}
+.sheet th,.sheet td{border-color:#dfe6f0}.sheet th,.sheet .note,.sheet .muted{color:#606060}.sheet .tot td{border-top:2px solid #333333}.sheet .wm{color:#333333}
+.qh{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:16px}.qh .n{text-align:right}.qh h2{margin:0 0 4px;color:#3575E2}.qb{margin-bottom:14px}.noprint{margin-bottom:10px}
+
+.qcard{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:16px;overflow:hidden;box-shadow:0 6px 24px rgba(53,117,226,.10)}
+.qhead{display:flex;align-items:center;gap:16px;padding:18px 20px;background:linear-gradient(120deg,#3575E2 0%,#1f4fb0 100%);color:#fff}
+.qhead h2{margin:0 0 2px;font-size:19px;color:#fff}.qhead p{margin:0;font-size:13px;opacity:.9}
+.qlogo{background:#fff;border-radius:12px;padding:8px 12px;flex:none}.qlogo img{height:38px;display:block}
+.qbody{padding:6px 20px 20px}
+.qstep{display:flex;align-items:center;gap:10px;margin:18px 0 10px}.qstep h3{margin:0;font-size:15px}
+.qnum{width:26px;height:26px;border-radius:50%;background:var(--soft);color:var(--accent);display:grid;place-items:center;font-weight:600;font-size:13px;flex:none}
+.seg{display:inline-flex;background:var(--soft);border-radius:10px;padding:4px;gap:4px}
+.seg button{border:0;background:transparent;color:var(--text);font:inherit;padding:8px 16px;border-radius:8px;cursor:pointer}
+.seg button.on{background:var(--accent);color:#fff;box-shadow:0 2px 6px rgba(53,117,226,.35)}
+.qgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}@media (max-width:760px){.qgrid{grid-template-columns:1fr}}
+.qgrid .lb input,.qgrid .lb textarea{width:100%}.qgrid .wide{grid-column:1/-1}
+.lb textarea{resize:vertical;font:inherit;text-align:left}
+.pick{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.pick label{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);cursor:pointer}
+.pick label:last-child{border-bottom:0}.pick label:hover{background:var(--soft)}
+.pick label.off .pn{color:var(--muted);text-decoration:line-through}
+.pick .pn{flex:1}.pick .pb{font-size:11px;background:var(--soft);color:var(--accent);border-radius:6px;padding:1px 7px}.pick .pa{min-width:90px;text-align:right;font-weight:500}
+.bundle{margin-top:10px;padding:10px 12px;border-radius:10px;background:#fff8e1;border:1px solid #ffe08a;color:#6b4e00;font-size:13px}
+.qfoot{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+.btn.big{padding:11px 22px;font-size:15px;font-weight:600;border-radius:10px}
+details.src summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px}
+details.src summary::-webkit-details-marker{display:none}details.src summary h2{margin:0}
+details.src summary::after{content:'+';font-size:22px;color:var(--accent);line-height:1}details.src[open] summary::after{content:'−'}
+details.src[open] summary{margin-bottom:12px}details.src[open] summary .note{display:none}
+.sheet{background:#fff;color:#333;border:1px solid #dfe6f0;border-radius:14px;padding:0;margin-bottom:16px;font-size:13.5px;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.sh-top{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:22px 26px;background:linear-gradient(120deg,#3575E2 0%,#1f4fb0 100%);color:#fff}
+.sh-top .lg{background:#fff;border-radius:12px;padding:8px 14px;display:inline-block}.sh-top .lg img{height:42px;display:block}
+.sh-top .co{font-size:12px;opacity:.9;margin-top:6px}
+.sh-top .dt{text-align:right}.sh-top .dt h2{margin:0;font-size:24px;letter-spacing:1px;color:#fff}.sh-top .dt div{font-size:12.5px;opacity:.95}
+.sh-meta{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;padding:20px 26px}
+@media (max-width:640px){.sh-meta{grid-template-columns:1fr}}
+.sh-box{background:#f4f7fc;border-radius:10px;padding:12px 14px}.sh-box .k{font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:#3575E2;font-weight:600;margin-bottom:4px}
+.sh-box .nm{font-weight:600;font-size:15px}.sh-box .ad{white-space:pre-line;color:#606060}
+.sh-tbl{padding:0 26px}.sh-tbl table{width:100%;border-collapse:collapse;min-width:0}
+.sh-tbl th{background:#3575E2;color:#fff!important;font-weight:500;font-size:12px;padding:9px 10px;text-align:left}.sh-tbl th:first-child{border-radius:8px 0 0 8px}.sh-tbl th:last-child{border-radius:0 8px 8px 0;text-align:right}
+.sh-tbl td{padding:9px 10px;border-bottom:1px solid #eef2f8}.sh-tbl tbody tr:nth-child(even) td{background:#fafcff}
+.sh-tbl .bl{font-size:11px;background:#e8f0fc;color:#3575E2;border-radius:6px;padding:1px 7px;white-space:nowrap}
+.sh-tot{display:flex;justify-content:flex-end;padding:14px 26px}
+.sh-tot table{min-width:300px;border-collapse:collapse}.sh-tot td{padding:6px 10px;border:0}.sh-tot td:last-child{text-align:right;white-space:nowrap}
+.sh-tot tr.grand td{background:#3575E2;color:#fff;font-weight:600;font-size:15px}.sh-tot tr.grand td:first-child{border-radius:8px 0 0 8px}.sh-tot tr.grand td:last-child{border-radius:0 8px 8px 0}
+.sh-tot tr.y2 td{color:#606060;font-size:12.5px}
+.sh-terms{margin:4px 26px 0;padding:12px 14px;border-left:4px solid #FFC619;background:#fffbea;border-radius:6px;font-size:12px;color:#606060}
+.sh-foot{margin-top:18px;padding:14px 26px;background:#f4f7fc;border-top:1px solid #dfe6f0;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:12px;color:#606060}
+.sh-foot b{color:#3575E2}
+.qbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+
+.discbox{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;margin:0 0 12px;border:1px dashed var(--accent);border-radius:10px;background:var(--soft)}
+.discbox small{display:block;color:var(--muted);font-size:12px}.discbox select{width:auto}.discbox input{width:110px}
+tr.disc-row td{color:#1b7f3b;font-weight:500}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media (max-width:760px){.opts{grid-template-columns:1fr}}
+.opt{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.opt small{display:block;color:var(--muted);font-size:12px}
+.seg.sm button{padding:5px 14px;font-size:13px}
+.pick label.base{background:var(--soft);cursor:default}.pick label.base .pn{font-weight:500}
+.sh-top .lg{background:#fff;border-radius:12px;padding:8px 14px}
+.sh-meta{grid-template-columns:1fr 1fr}
+.sh-end{display:grid;grid-template-columns:1fr minmax(280px,auto);gap:16px;align-items:start;padding:16px 26px 4px}
+@media (max-width:640px){.sh-end{grid-template-columns:1fr}}
+.sh-end .sh-tot{padding:0;display:block}.sh-end .sh-tot table{width:100%}
+.sh-bank{border:1px solid #dfe6f0;border-radius:10px;padding:12px 14px;background:#fff}
+.sh-bank .k{font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:#3575E2;font-weight:600;margin-bottom:6px}
+.sh-bank table{border-collapse:collapse;width:100%}.sh-bank td{padding:3px 0;border:0;font-size:13px}.sh-bank td:first-child{color:#606060;width:42%}
+.sh-tot tr.disc td{color:#1b7f3b}
+.sheet{break-inside:auto}.sh-end,.sh-terms,.sh-foot{break-inside:avoid}
+@media print{@page{margin:10mm}.sheet{font-size:12px}.sh-top{padding:14px 20px}.sh-top .lg img{height:34px}.sh-meta{padding:12px 20px;gap:12px}.sh-box{padding:9px 12px}.sh-tbl{padding:0 20px}.sh-tbl td{padding:6px 10px}.sh-end{padding:12px 20px 2px}.sh-tot td{padding:4px 10px}.sh-terms{margin:6px 20px 0;padding:8px 12px}.sh-foot{margin-top:10px;padding:10px 20px}.hd,.wrap>*:not(#quote),.noprint{display:none!important}body{background:#fff}.wrap{padding:0;max-width:none}.sheet{border:0;border-radius:0}}
+</style>
+</head>
+<body>
+<div class='hd'><div class='in'><div id='brand'><span class='wm'>Munim</span></div></div></div>
+<div class="wrap">
+  <h1>Price Calculator &amp; Quotation</h1>
+  <p class='sub'>Enter the customer's details, then create a quotation or proforma to share. Amounts are in ₹.</p>
+
+  
+
+  <div class="grid">
+    <div class="card"><h2>Customer details</h2><div id="inputs"></div></div>
+    <div><div class="card"><h2>Price</h2>
+      <div class="kpis">
+        <div class="kpi main"><span>First-year total, including GST</span><b id="k_first">–</b></div>
+        <div class="kpi"><span>Recurring per year, excl. GST</span><b id="k_rec">–</b></div>
+        <div class="kpi"><span>One-time, excl. GST</span><b id="k_one">–</b></div>
+        <div class="kpi"><span>GST on first year</span><b id="k_gst">–</b></div>
+        <div class="kpi"><span>Special discount</span><b id="k_disc">₹0</b></div>
+      </div>
+      <div class="discbox">
+        <div><b>Special discount</b><small>Taken off before GST</small></div>
+        <div class="row"><select class="d_t" aria-label="Discount type"><option value="pct">%</option><option value="amt">₹ amount</option></select><input type="number" class="d_v" min="0" step="any" value="0" aria-label="Discount value"></div>
+      </div>
+      <div class="scroll"><table><thead><tr><th>Item</th><th>How</th><th class="n">₹</th></tr></thead><tbody id="rows"></tbody></table></div>
+    </div></div>
+  </div>
+
+  <div class='qcard'>
+    <div class='qhead'>
+      <div class='qlogo'><img id='qLogo' alt='Munim'></div>
+      <div><h2>Create quotation / proforma</h2><p>Fill in the customer's details, choose what they see, and share a branded document in one click.</p></div>
+    </div>
+    <div class='qbody'>
+      <div class='qstep'><span class='qnum'>1</span><h3>Document type</h3></div>
+      <div class='seg' id='q_seg'>
+        <button type='button' class='on' data-v='Quotation'>Quotation</button>
+        <button type='button' data-v='Proforma Invoice'>Proforma Invoice</button>
+      </div>
+      <input type='hidden' id='q_type' value='Quotation'>
+
+      <div class='qstep'><span class='qnum'>2</span><h3>Customer details</h3></div>
+      <div class='qgrid'>
+        <label class='lb'>Customer name<input type='text' id='q_name' placeholder='e.g. Rahul Mehta'></label>
+        <label class='lb'>Company<input type='text' id='q_co' placeholder='e.g. Mehta Traders Pvt Ltd'></label>
+        <label class='lb'>GSTIN (optional)<input type='text' id='q_gstin' placeholder='24ABCDE1234F1Z5' maxlength='15'></label>
+        <label class='lb'>Phone / WhatsApp<input type='tel' id='q_ph' placeholder='98xxxxxxxx'></label>
+        <label class='lb'>Email<input type='email' id='q_em' placeholder='name@company.com'></label>
+        <label class='lb'>Valid for (days)<input type='number' id='q_val' min='1' value='15'></label>
+        <label class='lb wide'>Company address<textarea id='q_addr' rows='2' placeholder='Building, street, city, state, PIN'></textarea></label>
+      </div>
+
+      <div class='qstep'><span class='qnum'>3</span><h3>Items on the document</h3></div>
+      <p class='note' style='margin:0 0 8px'>Untick an item to hide it from the customer. Its amount is added to <b id='q_basename'>Platform base</b>, so the total stays the same.</p>
+      <div class='row' style='margin-bottom:8px'>
+        <button type='button' class='btn sm' id='q_all'>Show all</button>
+        <button type='button' class='btn sm' id='q_none'>Hide all</button>
+      </div>
+      <div id='q_pick' class='pick'></div>
+      <div id='q_bundle' class='bundle' hidden></div>
+
+      <div class='qstep'><span class='qnum'>4</span><h3>Special discount</h3></div>
+      <div class='row'>
+        <label class='lb'>Type<select class='d_t'><option value='pct'>%</option><option value='amt'>₹ amount</option></select></label>
+        <label class='lb'>Value<input type='number' class='d_v' min='0' step='any' value='0'></label>
+        <label class='lb'>Name on document<input type='text' id='d_label' value='Special discount' maxlength='40'></label>
+        <span class='note' id='q_discnote'></span>
+      </div>
+
+      <div class='qstep'><span class='qnum'>5</span><h3>Options</h3></div>
+      <div class='opts'>
+        <div class='opt'><div><b>Show unit calculation</b><small>e.g. "1 above 2 × ₹999" under each item</small></div>
+          <div class='seg sm' id='o_calc'><button type='button' data-v='1'>Yes</button><button type='button' class='on' data-v='0'>No</button></div></div>
+        <div class='opt'><div><b>Add bank details</b><small>For NEFT / IMPS / RTGS payment</small></div>
+          <div class='seg sm' id='o_bank'><button type='button' class='on' data-v='1'>Yes</button><button type='button' data-v='0'>No</button></div></div>
+      </div>
+
+      <div class='qfoot'>
+        <button class='btn pri big' id='q_make'>Create document</button>
+        <span class='note'>Uses the price shown above. Customer details are not stored.</span>
+      </div>
+    </div>
+  </div>
+  <div id='quote' hidden></div>
+
+  <details class="card src">
+    <summary><h2>How the amount is calculated</h2><span class="note">Click to view</span></summary>
+    <p>Price = every rule below, added together. For a metered rule only the quantity <b>above the included amount</b> is charged. A band rule charges the fee of the selected band. A yes/no rule charges its fee only when ticked. This table always shows the current live rules.</p>
+    <div class="scroll"><table><thead><tr><th>Rule</th><th>Included free</th><th>Rate</th><th>Billing</th></tr></thead><tbody id="how"></tbody></table></div>
+    <ol>
+      <li><b>Recurring per year</b> = sum of all yearly amounts.</li>
+      <li><b>One-time</b> = sum of all one-time amounts.</li>
+      <li><b>Total payable</b> = (recurring + one-time − special discount) + GST (<span id="gstpct"></span>).</li>
+      <li><b>Special discount</b> (% or ₹) is taken off the first-year amount before GST is added.</li>
+      <li>Included amounts apply per account, not per GSTIN.</li>
+    </ol>
+  </details>
+
+  <details class="card src">
+    <summary><h2>Sources and how this was created</h2><span class="note">Click to view</span></summary>
+    <p>The starting rates were built from Munim's published prices and a competitor study done on 12 Oct 2026 (KDK Software, Octa GST, Computax, ClearTax, plus GSTZen as an extra reference). Only three starting rates come straight from Munim's prices; the rest were assumptions because no competitor publishes them. This section records where the rates came from.</p>
+    <h3>Munim published prices</h3>
+    <div class="scroll"><table><thead><tr><th>Item</th><th class="n">Price excl. GST</th><th>Used for</th></tr></thead><tbody>
+      <tr><td>Billing &amp; Accounting – Beginners (3 companies, 1 admin + 1 user)</td><td class="n">₹3,599 / yr</td><td>Platform base</td></tr>
+      <tr><td>Extra user</td><td class="n">₹999 / yr</td><td>Users rate</td></tr>
+      <tr><td>GST Standard (40 GSTINs) / Professional (100 GSTINs)</td><td class="n">₹5,999 / ₹11,999 per yr</td><td>GSTIN rate ₹63 (reproduces both within 1.4%)</td></tr>
+      <tr><td>Accounting Standard (5 companies, ₹8,299 / 3 yrs)</td><td class="n">≈ ₹553 per company / yr</td><td>PAN rate ₹550</td></tr>
+    </tbody></table></div>
+    <p class="note">Source: <a href="https://themunim.com/pricing/" target="_blank" rel="noopener">themunim.com/pricing</a></p>
+    <h3>Competitor data</h3>
+    <div class="scroll"><table><thead><tr><th>Vendor</th><th>What was found</th><th>Source</th></tr></thead><tbody>
+      <tr><td>Octa GST</td><td>Standard ₹25,000/yr: 1 GSTIN, 3,000 sales + 3,000 purchase invoices. Premium (multiple PANs, ERP, API) is custom-quoted.</td><td><a href="https://octagst.com/pricing" target="_blank" rel="noopener">octagst.com/pricing</a></td></tr>
+      <tr><td>ClearTax</td><td>E-invoicing + GST set from ₹7,777/month (₹93,324/yr). Enterprise form asks turnover in 5 bands. CA pack: 300 GSTINs, 3,000 invoices per GSTIN.</td><td><a href="https://cleartax.in/s/e-invoicing-gst-compliance-solution/" target="_blank" rel="noopener">cleartax.in</a></td></tr>
+      <tr><td>KDK Software</td><td>CA plan about ₹6,300 per user per year (third-party listing). Enterprise quoted by size band (under ₹200 Cr, ₹200–800 Cr, over ₹800 Cr).</td><td><a href="https://www.kdksoftware.com/spectrum-cloud-for-enterprise/" target="_blank" rel="noopener">kdksoftware.com</a></td></tr>
+      <tr><td>Computax</td><td>No public price. Only a reseller listing (₹7,500, desktop licence).</td><td><a href="https://computaxonline.com/home" target="_blank" rel="noopener">computaxonline.com</a></td></tr>
+      <tr><td>GSTZen (extra)</td><td>₹5,250 and ₹8,000 per GSTIN per year, plus GST.</td><td><a href="https://gstzen.in/a/pricing-for-taxpayer.html" target="_blank" rel="noopener">gstzen.in</a></td></tr>
+    </tbody></table></div>
+    <p class='note'>Colours and logo follow the Munim logo (blue #3575E2, charcoal #333333). The typeface is Poppins, as on <a href='https://themunim.com/our-brand-assets/' target='_blank' rel='noopener'>themunim.com/our-brand-assets</a>. Contact details on quotations are from themunim.com.</p>
+    <h3>Assumptions to review</h3>
+    <ul>
+      <li>Turnover bands, invoice, B2B, e-way, e-invoice, consultancy and end-to-end integration rates were assumptions; no competitor publishes them.</li>
+      <li>Munim's Billing &amp; Accounting plans include e-way bills and e-invoices today at no extra charge. Those fees are meant for the GST / enterprise offering.</li>
+      <li>Munim's GSTIN pricing (about ₹120–150 per GSTIN) is built for CAs; competitors charge ₹5,250–25,000 for a single-GSTIN business.</li>
+      <li>Competitor figures are floors or list prices from vendor pages and third-party listings and may be out of date.</li>
+    </ul>
+  </details>
+</div>
+
+<script>
+var DEF={gst:0.18,log:[],valid:15,logo:'',company:{name:'Munim ERP Private Limited',gstin:'24AAPCM8554R1ZF',address:'2nd Floor, Plot No. 240, Identix House, Poddar Arcade to L. H. Road, Varachha Road, Surat, Gujarat 395006',email:'sales@themunim.com',phone:'9898661036',web:'themunim.com'},bank:{show:true,holder:'MUNIM ERP PRIVATE LIMITED',acno:'99912220001222',bank:'HDFC BANK',ifsc:'HDFC0000533',branch:''},terms:'Prices exclude GST unless stated. One-time fees are payable once; yearly fees renew each year. This document is not a tax invoice.',rules:[
+ {id:"base",name:"Platform base",type:"flat",yearly:3599,once:0,note:"Includes 3 PANs, 2 users, 1 GSTIN"},
+ {id:"turn",name:"Annual turnover",type:"band",def:1,opts:[{l:"Up to ₹5 Cr",f:0},{l:"₹5–20 Cr",f:1500},{l:"₹20–50 Cr",f:3000},{l:"₹50–100 Cr",f:6000},{l:"₹100–500 Cr",f:12000},{l:"Above ₹500 Cr",f:25000}]},
+ {id:"bs",name:"B2B sales invoices per year",type:"meter",incl:3000,rate:0.20,per:"yearly",unit:"invoice",def:8000},
+ {id:"bp",name:"B2B purchase invoices per year",type:"meter",incl:3000,rate:0.15,per:"yearly",unit:"invoice",def:6000},
+ {id:"usr",name:"Users (including admin)",type:"meter",incl:2,rate:999,per:"yearly",unit:"user",def:3},
+ {id:"gst",name:"GST numbers (GSTINs)",type:"meter",incl:1,rate:63,per:"yearly",unit:"GSTIN",def:2},
+ {id:"pan",name:"PANs (companies)",type:"meter",incl:3,rate:550,per:"yearly",unit:"PAN",def:1},
+ {id:"ew",name:"Unlimited e-way bills",type:"toggle",yearly:2500,once:0,def:true},
+ {id:"ei",name:"Unlimited e-invoices",type:"toggle",yearly:5000,once:0,def:true},
+ {id:"cd",name:"Integration consultancy (person-days)",type:"meter",incl:0,rate:7500,per:"once",unit:"person-day",def:2},
+ {id:"e2e",name:"Integration end to end",type:"toggle",yearly:11250,once:75000,def:false,note:"One-time project fee + 15% yearly maintenance"}
+]};
+var LOGO='data:image/png;base64,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';
+var cfg=clone(DEF),vals={},db=null,docRef=null,canAdmin=false,isOwner=false,draft=null,armed=null,LAST=null,dl=null;
+function clone(o){return JSON.parse(JSON.stringify(o));}
+function $(id){return document.getElementById(id);}
+function N(x){x=Number(x);return isFinite(x)&&x>=0?x:0;}
+function inr(n){return "₹"+Math.round(n).toLocaleString("en-IN");}
+function fr(n){return "₹"+(Number.isInteger(n)?n.toLocaleString("en-IN"):n.toFixed(2));}
+function el(t,p,k){var e=document.createElement(t);p=p||{};for(var a in p){var v=p[a];if(a==="text")e.textContent=v;else if(a==="cls")e.className=v;else if(a==="value")e.value=v;else if(a==="checked")e.checked=!!v;else if(a.slice(0,2)==="on")e[a]=v;else e.setAttribute(a,v);}(k||[]).forEach(function(c){if(c!=null)e.appendChild(typeof c==="string"?document.createTextNode(c):c);});return e;}
+function norm(c){
+  if(!c||!Array.isArray(c.rules))return null;
+  var out={gst:N(c.gst)||0,log:[],rules:[],valid:N(c.valid)||15,terms:String(c.terms||'').slice(0,800),logo:(String(c.logo||'').indexOf('data:image/')===0&&String(c.logo).length<250000)?String(c.logo):''};
+  function strs(o,d){var r={};o=o&&typeof o==='object'?o:{};for(var k in d){r[k]=typeof d[k]==='boolean'?(k in o?!!o[k]:d[k]):String(k in o&&o[k]!=null?o[k]:d[k]).slice(0,300);}return r;}
+  out.company=strs(c.company,DEF.company);out.bank=strs(c.bank,DEF.bank);
+  (Array.isArray(c.log)?c.log:[]).slice(-20).forEach(function(x){if(x)out.log.push({t:N(x.t),m:String(x.m||"").slice(0,200)});});
+  c.rules.slice(0,60).forEach(function(r,i){
+    if(!r||["flat","band","meter","toggle"].indexOf(r.type)<0)return;
+    var o={id:String(r.id||"r"+i),name:String(r.name||"Rule").slice(0,80),type:r.type,note:String(r.note||"").slice(0,120)};
+    if(r.type==="band"){o.opts=(Array.isArray(r.opts)?r.opts:[]).slice(0,30).map(function(p){return{l:String(p&&p.l||"Band").slice(0,60),f:N(p&&p.f)};});if(!o.opts.length)o.opts=[{l:"Band 1",f:0}];o.def=Math.min(N(r.def),o.opts.length-1);}
+    else if(r.type==="meter"){o.incl=N(r.incl);o.rate=N(r.rate);o.per=r.per==="once"?"once":"yearly";o.unit=String(r.unit||"unit").slice(0,30);o.def=N(r.def);}
+    else{o.yearly=N(r.yearly);o.once=N(r.once);o.def=!!r.def;}
+    out.rules.push(o);});
+  return out;}
+function initVals(){var nv={};cfg.rules.forEach(function(r){if(r.type==="flat")return;nv[r.id]=(r.id in vals)?vals[r.id]:r.def;
+  if(r.type==="band"&&nv[r.id]>=r.opts.length)nv[r.id]=0;});vals=nv;}
+
+function renderInputs(){
+  var box=$("inputs");box.innerHTML="";
+  cfg.rules.forEach(function(r){
+    if(r.type==="flat")return;
+    var ctl,sm=r.type==="meter"?"First "+r.incl.toLocaleString("en-IN")+" included":(r.note||"");
+    if(r.type==="band"){ctl=el("select",{id:"f_"+r.id},r.opts.map(function(o,i){return el("option",{value:i,text:o.l});}));ctl.value=vals[r.id];ctl.onchange=function(){vals[r.id]=+ctl.value;calc();};}
+    else if(r.type==="meter"){ctl=el("input",{type:"number",min:0,id:"f_"+r.id,value:vals[r.id]});ctl.oninput=function(){vals[r.id]=N(ctl.value);calc();};}
+    else{ctl=el("input",{type:"checkbox",id:"f_"+r.id,checked:vals[r.id]});ctl.onchange=function(){vals[r.id]=ctl.checked;calc();};}
+    box.appendChild(el("div",{cls:"field"},[el("label",{for:"f_"+r.id},[r.name,sm?el("small",{text:sm}):null]),ctl]));
+  });}
+function calc(){
+  var rec=[],one=[];
+  cfg.rules.forEach(function(r){
+    if(r.type==="flat"){if(r.yearly)rec.push([r.name,r.note||"Fixed yearly fee",r.yearly]);if(r.once)one.push([r.name,"Fixed one-time fee",r.once]);}
+    else if(r.type==="band"){var o=r.opts[vals[r.id]]||r.opts[0];rec.push([r.name,o.l,o.f,0]);}
+    else if(r.type==="meter"){var q=Math.max(N(vals[r.id])-r.incl,0);(r.per==="once"?one:rec).push([r.name,q.toLocaleString("en-IN")+" above "+r.incl.toLocaleString("en-IN")+" × "+fr(r.rate),q*r.rate,1]);}
+    else{var on=vals[r.id];if(r.yearly)rec.push([r.name,on?"Yearly fee":"Not selected",on?r.yearly:0]);if(r.once)one.push([r.name,on?"One-time fee":"Not selected",on?r.once:0]);}
+  });
+  var rt=0,ot=0,h=document.createDocumentFragment();
+  function sect(t){var tr=el("tr",{},[el("td",{colspan:3},[el("b",{text:t})])]);h.appendChild(tr);}
+  function line(x){h.appendChild(el("tr",{},[el("td",{text:x[0]}),el("td",{cls:"muted",text:x[1]}),el("td",{cls:"n",text:inr(x[2])})]));}
+  sect("Recurring (per year)");rec.forEach(function(x){rt+=x[2];line(x);});
+  h.appendChild(el("tr",{cls:"tot"},[el("td",{colspan:2,text:"Total recurring"}),el("td",{cls:"n",text:inr(rt)})]));
+  sect("One-time");one.forEach(function(x){ot+=x[2];line(x);});
+  h.appendChild(el("tr",{cls:"tot"},[el("td",{colspan:2,text:"Total one-time"}),el("td",{cls:"n",text:inr(ot)})]));
+  var sub=rt+ot,dv=N(DISC.v),disc=DISC.t==='pct'?Math.round(sub*Math.min(dv,100))/100:Math.min(dv,sub),tax=sub-disc,g=tax*cfg.gst;
+  if(disc>0){h.appendChild(el("tr",{cls:"disc-row"},[el("td",{colspan:2,text:(DISC.l||"Special discount")+(DISC.t==='pct'?" ("+dv+"%)":"")}),el("td",{cls:"n",text:"− "+inr(disc)})]));
+    h.appendChild(el("tr",{cls:"tot"},[el("td",{colspan:2,text:"Total after discount"}),el("td",{cls:"n",text:inr(tax)})]));}
+  var rb=$("rows");rb.innerHTML="";rb.appendChild(h);
+  LAST={rec:rec,one:one,rt:rt,ot:ot,sub:sub,disc:disc,tax:tax,g:g};
+  $("k_rec").textContent=inr(rt);$("k_one").textContent=inr(ot);$("k_gst").textContent=inr(g);$("k_first").textContent=inr(tax+g);$("k_disc").textContent=disc>0?"− "+inr(disc):"₹0";
+  syncDisc();renderPick();
+}
+function renderHow(){
+  var b=$("how");b.innerHTML="";
+  cfg.rules.forEach(function(r){
+    var inc="–",rate,bill="Yearly";
+    if(r.type==="flat"){rate=(r.yearly?fr(r.yearly)+" / yr":"")+(r.yearly&&r.once?" + ":"")+(r.once?fr(r.once)+" one-time":"");bill="Always";}
+    else if(r.type==="band"){rate=r.opts.map(function(o){return o.l+" = "+fr(o.f);}).join("; ");}
+    else if(r.type==="meter"){inc=r.incl.toLocaleString("en-IN")+" "+r.unit+"s";rate=fr(r.rate)+" per extra "+r.unit;bill=r.per==="once"?"One-time":"Yearly";}
+    else{rate=(r.yearly?fr(r.yearly)+" / yr":"")+(r.yearly&&r.once?" + ":"")+(r.once?fr(r.once)+" one-time":"");bill="If selected";}
+    b.appendChild(el("tr",{},[el("td",{text:r.name}),el("td",{text:inc}),el("td",{text:rate}),el("td",{text:bill})]));
+  });
+  $("gstpct").textContent=Math.round(cfg.gst*10000)/100+"%";}
+function renderBrand(){var b=$('brand');b.innerHTML='';b.appendChild(el('img',{cls:'logo',src:cfg.logo||LOGO,alt:'Munim'}));var ql=$('qLogo');if(ql)ql.src=cfg.logo||LOGO;}
+function renderAll(){initVals();renderBrand();renderInputs();calc();renderHow();if(OPT.bank==null&&cfg.bank)setSeg('o_bank',cfg.bank.show);}
+
+/* ---------- Quotation ---------- */
+function qm(t){var m=$('qmsg');if(m)m.textContent=t;}
+function cp(t){try{navigator.clipboard.writeText(t).then(function(){qm('Copied.');},function(){qm('Copy is blocked here.');});}catch(e){qm('Copy is blocked here.');}}
+function dlq(num){
+  
+  var c=$('quote').cloneNode(true);c.hidden=false;c.querySelectorAll('.noprint').forEach(function(n){n.remove();});
+  var html='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+num+'</title><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap"><style>'+document.querySelector('style').textContent+'</style></head><body><div class="wrap">'+c.outerHTML+'</div></body></html>';
+  var bl=new Blob([html],{type:'text/html'}),an=el('a',{href:URL.createObjectURL(bl),download:num+'.html'});document.body.appendChild(an);an.click();an.remove();qm('Downloaded.');}
+var HIDE={},DISC={t:'pct',v:0,l:'Special discount'},OPT={calc:false,bank:null};
+function baseRule(){for(var i=0;i<cfg.rules.length;i++){if(cfg.rules[i].id==='base')return cfg.rules[i];}for(i=0;i<cfg.rules.length;i++){if(cfg.rules[i].type==='flat')return cfg.rules[i];}return null;}
+function baseName(){var b=baseRule();return b?b.name:'Platform base';}
+/* ---- discount controls (price card + builder share one value) ---- */
+function syncDisc(){
+  document.querySelectorAll('.d_t').forEach(function(x){if(x!==document.activeElement)x.value=DISC.t;});
+  document.querySelectorAll('.d_v').forEach(function(x){if(x!==document.activeElement&&Number(x.value)!==DISC.v)x.value=DISC.v;});
+  var n=$('q_discnote');if(n&&LAST)n.textContent=LAST.disc>0?'− '+inr(LAST.disc)+' off · Total payable '+inr(LAST.tax+LAST.g):'';
+}
+document.querySelectorAll('.d_t').forEach(function(x){x.onchange=function(){DISC.t=x.value;calc();};});
+document.querySelectorAll('.d_v').forEach(function(x){x.oninput=function(){var v=Number(x.value);DISC.v=isFinite(v)&&v>=0?v:0;
+  calc();};});
+$('d_label').oninput=function(){DISC.l=this.value.trim()||'Special discount';calc();};
+
+/* ---- line items and hiding ---- */
+function qLines(){var L=LAST,out=[];if(!L)return out;var bn=baseName();
+  L.rec.forEach(function(x){if(x[2]>0)out.push({k:'y:'+x[0],name:x[0],det:x[1],bill:'Yearly',amt:x[2],meter:!!x[3],base:x[0]===bn});});
+  L.one.forEach(function(x){if(x[2]>0)out.push({k:'o:'+x[0],name:x[0],det:x[1],bill:'One-time',amt:x[2],meter:!!x[3],base:x[0]===bn});});
+  return out;}
+function qItems(){var bn=baseName(),ls=qLines(),hy=0,ho=0,n=0,shown=[];
+  ls.forEach(function(l){if(!l.base&&HIDE[l.k]){n++;if(l.bill==='Yearly')hy+=l.amt;else ho+=l.amt;}});
+  var by=false,bo=false;
+  ls.forEach(function(l){
+    if(!l.base&&HIDE[l.k])return;
+    var amt=l.amt,det=((l.meter&&!OPT.calc)||/^(Yearly|One-time) fee$/.test(l.det))?'':l.det;
+    if(l.base&&l.bill==='Yearly'){amt+=hy;by=true;}
+    if(l.base&&l.bill==='One-time'){amt+=ho;bo=true;}
+    shown.push([l.name,det,l.bill,amt]);});
+  if(hy>0&&!by)shown.unshift([bn,'','Yearly',hy]);
+  if(ho>0&&!bo){var at=0;for(var i=0;i<shown.length;i++){if(shown[i][2]==='Yearly')at=i+1;}shown.splice(at,0,[bn+' (one-time)','','One-time',ho]);}
+  return {items:shown,hy:hy,ho:ho,n:n};}
+function renderPick(){var box=$('q_pick');if(!box)return;box.innerHTML='';
+  var bn=baseName();$('q_basename').textContent=bn;
+  var ls=qLines();if(!ls.length){box.appendChild(el('div',{cls:'note',style:'padding:10px',text:'No chargeable items yet.'}));}
+  ls.forEach(function(l){var cb=el('input',{type:'checkbox',checked:l.base||!HIDE[l.k]});if(l.base)cb.disabled=true;
+    var lab=el('label',{cls:(HIDE[l.k]&&!l.base?'off':'')+(l.base?' base':'')},[cb,el('span',{cls:'pn',text:l.name+(l.base?'  (always shown)':'')}),el('span',{cls:'pb',text:l.bill}),el('span',{cls:'pa',text:inr(l.amt)})]);
+    cb.onchange=function(){if(cb.checked)delete HIDE[l.k];else HIDE[l.k]=1;renderPick();};box.appendChild(lab);});
+  var q=qItems(),b=$('q_bundle');
+  if(q.n){b.hidden=false;b.textContent=q.n+' item'+(q.n>1?'s':'')+' hidden → '+(q.hy?inr(q.hy)+' yearly':'')+(q.hy&&q.ho?' + ':'')+(q.ho?inr(q.ho)+' one-time':'')+' added to "'+bn+'".';}else b.hidden=true;}
+
+/* ---- yes/no switches ---- */
+function seg(id,cb){var w=$(id);w.querySelectorAll('button').forEach(function(b){b.onclick=function(){w.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b);});cb(b.getAttribute('data-v')==='1');};});}
+function setSeg(id,on){$(id).querySelectorAll('button').forEach(function(x){x.classList.toggle('on',(x.getAttribute('data-v')==='1')===!!on);});}
+seg('o_calc',function(v){OPT.calc=v;});
+seg('o_bank',function(v){OPT.bank=v;});
+
+/* ---- document ---- */
+function mkQuote(){
+  if(!LAST)return;
+  var L=LAST,type=$('q_type').value,d=new Date(),C=cfg.company||DEF.company,B=cfg.bank||DEF.bank;
+  var showBank=(OPT.bank==null?!!B.show:OPT.bank)&&!!(B.acno||B.ifsc);
+  var num=(type==='Quotation'?'QT':'PI')+'-'+d.toISOString().slice(2,10).replace(/-/g,'')+'-'+(1000+Math.floor(Math.random()*9000));
+  var till=new Date(d.getTime()+(N($('q_val').value)||cfg.valid||15)*864e5);
+  var f=function(x){return x.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});};
+  var nm=$('q_name').value.trim()||'Customer',co=$('q_co').value.trim(),gs=$('q_gstin').value.trim().toUpperCase(),ph=$('q_ph').value.trim(),em=$('q_em').value.trim(),ad=$('q_addr').value.trim();
+  var items=qItems().items;
+  var gp=Math.round(cfg.gst*10000)/100,terms=cfg.terms||DEF.terms,NL=String.fromCharCode(10);
+  var dl=(DISC.l||'Special discount')+(DISC.t==='pct'&&L.disc>0?' ('+N(DISC.v)+'%)':'');
+  /* plain-text version for WhatsApp / email */
+  var tx=[type+' '+num,C.name+(C.gstin?' (GSTIN '+C.gstin+')':''),'Date: '+f(d)+' | Valid till: '+f(till),'For: '+nm+(co?', '+co:''),''];
+  items.forEach(function(x,i){tx.push((i+1)+'. '+x[0]+' ('+x[2]+'): '+inr(x[3]));});
+  tx.push('','Subtotal: '+inr(L.sub));
+  if(L.disc>0)tx.push(dl+': − '+inr(L.disc));
+  tx.push('GST '+gp+'%: '+inr(L.g),'Total payable: '+inr(L.tax+L.g));
+  if(showBank)tx.push('','Bank details (NEFT/IMPS/RTGS)','Name: '+B.holder,'A/C No: '+B.acno,'Bank: '+B.bank+(B.branch?', '+B.branch:''),'IFSC: '+B.ifsc);
+  tx.push('',[C.email,C.phone,C.web].filter(Boolean).join(' | '));
+  var text=tx.join(NL),dg=ph.replace(/\D/g,'');if(dg.length===10)dg='91'+dg;
+  var rows=items.map(function(x,i){return el('tr',{},[el('td',{text:String(i+1)}),el('td',{},[el('b',{text:x[0]}),x[1]?el('div',{cls:'muted',style:'font-size:12px',text:x[1]}):null]),el('td',{},[el('span',{cls:'bl',text:x[2]})]),el('td',{cls:'n',text:inr(x[3])})]);});
+  function tr(a,b,c){return el('tr',{cls:c||''},[el('td',{text:a}),el('td',{text:b})]);}
+  var tot=[tr('Subtotal',inr(L.sub))];
+  if(L.disc>0){tot.push(tr(dl,'− '+inr(L.disc),'disc'));tot.push(tr('Taxable amount',inr(L.tax)));}
+  tot.push(tr('GST '+gp+'%',inr(L.g)),tr('Total payable',inr(L.tax+L.g),'grand'));
+  var logo=el('img',{src:cfg.logo||LOGO,alt:'Munim'});
+  var q=$('quote');q.innerHTML='';q.hidden=false;
+  var bar=el('div',{cls:'noprint qbar'},[
+    el('button',{cls:'btn pri',text:'Print / Save as PDF',onclick:function(){try{window.print();}catch(e){qm('Printing is blocked here. Use Download, then print the file.');}}}),
+    el('button',{cls:'btn',text:'Download',onclick:function(){dlq(num);}}),
+    el('a',{cls:'btn',text:'WhatsApp',href:'https://wa.me/'+dg+'?text='+encodeURIComponent(text),target:'_blank',rel:'noopener'}),
+    el('a',{cls:'btn',text:'Email',href:'mailto:'+em+'?subject='+encodeURIComponent(type+' '+num+' - Munim')+'&body='+encodeURIComponent(text),target:'_blank',rel:'noopener'}),
+    el('button',{cls:'btn',text:'Copy text',onclick:function(){cp(text);}}),
+    el('span',{id:'qmsg',cls:'note'})]);
+  var bankBox=showBank?el('div',{cls:'sh-bank'},[el('div',{cls:'k',text:'Bank details · NEFT / IMPS / RTGS'}),
+    el('table',{},[el('tbody',{},[['Account name',B.holder],['Account no.',B.acno],['Bank',B.bank+(B.branch?', '+B.branch:'')],['IFSC',B.ifsc]].filter(function(r){return r[1];}).map(function(r){return el('tr',{},[el('td',{text:r[0]}),el('td',{},[el('b',{text:r[1]})])]);}))])]):el('div');
+  var sheet=el('div',{cls:'sheet'},[
+    el('div',{cls:'sh-top'},[el('div',{cls:'lg'},[logo]),
+      el('div',{cls:'dt'},[el('h2',{text:type.toUpperCase()}),el('div',{text:'No. '+num}),el('div',{text:'Date: '+f(d)}),el('div',{text:'Valid till: '+f(till)})])]),
+    el('div',{cls:'sh-meta'},[
+      el('div',{cls:'sh-box'},[el('div',{cls:'k',text:'From'}),el('div',{cls:'nm',text:C.name}),C.gstin?el('div',{},['GSTIN: ',el('b',{text:C.gstin})]):null,C.address?el('div',{cls:'ad',text:C.address}):null,el('div',{cls:'muted',text:[C.email,C.phone].filter(Boolean).join(' · ')})]),
+      el('div',{cls:'sh-box'},[el('div',{cls:'k',text:'Prepared for'}),el('div',{cls:'nm',text:nm}),co?el('div',{text:co}):null,gs?el('div',{},['GSTIN: ',el('b',{text:gs})]):null,ad?el('div',{cls:'ad',text:ad}):null,(ph||em)?el('div',{cls:'muted',text:[ph,em].filter(Boolean).join(' · ')}):null])]),
+    el('div',{cls:'sh-tbl'},[el('table',{},[el('thead',{},[el('tr',{},[el('th',{text:'#'}),el('th',{text:'Item'}),el('th',{text:'Billing'}),el('th',{text:'Amount'})])]),el('tbody',{},rows)])]),
+    el('div',{cls:'sh-end'},[bankBox,el('div',{cls:'sh-tot'},[el('table',{},[el('tbody',{},tot)])])]),
+    el('div',{cls:'sh-terms',text:terms}),
+    el('div',{cls:'sh-foot'},[el('span',{},[el('b',{text:C.name})]),el('span',{text:[C.email,C.phone,C.web].filter(Boolean).join(' · ')})])]);
+  q.appendChild(bar);q.appendChild(sheet);q.scrollIntoView({behavior:'smooth'});
+}
+document.querySelectorAll('#q_seg button').forEach(function(b){b.onclick=function(){document.querySelectorAll('#q_seg button').forEach(function(x){x.classList.toggle('on',x===b);});$('q_type').value=b.getAttribute('data-v');};});
+$('q_all').onclick=function(){HIDE={};renderPick();};
+$('q_none').onclick=function(){qLines().forEach(function(l){if(!l.base)HIDE[l.k]=1;});renderPick();};
+$('q_make').onclick=mkQuote;
+renderAll();
+/* Live rates: load config.json (edited from admin.html). Falls back to DEF above. */
+fetch('munim-prices.json?v='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.json():null;}).then(function(c){var n=norm(c);if(n){cfg=n;renderAll();}}).catch(function(){});
+
+</script>
+</body>
+</html>
