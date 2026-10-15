@@ -114,6 +114,15 @@ tr.disc-row td{color:#1b7f3b;font-weight:500}
 .sh-bank table{border-collapse:collapse;width:100%}.sh-bank td{padding:3px 0;border:0;font-size:13px}.sh-bank td:first-child{color:#606060;width:42%}
 .sh-tot tr.disc td{color:#1b7f3b}
 .sheet{break-inside:auto}.sh-end,.sh-terms,.sh-foot{break-inside:avoid}
+
+.rtop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.rk{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}@media (max-width:760px){.rk{grid-template-columns:1fr 1fr}}
+.rk .kpi.main{grid-column:auto}.rk .kpi.main b{font-size:20px}.rtbl td:first-child,.rtbl td:nth-child(2) b,.rtbl td:nth-child(5){white-space:nowrap}
+.rk .kpi small{display:block;font-size:12px;color:var(--muted)}.rk .kpi.main small{color:inherit;opacity:.85}
+.rfil{margin-bottom:10px}.rfil input[type=search]{flex:1;min-width:220px}.rfil select{width:auto}
+.rtbl td{vertical-align:middle}.racts{display:flex;gap:6px;flex-wrap:wrap}
+.st{font-size:12px;border-radius:20px;padding:2px 10px;font-weight:500;white-space:nowrap}.st.open{background:#eef1f5;color:#606060}.st.sale{background:#e6f4ea;color:#1b7f3b}.st.lost{background:#fdecea;color:#c62828}
+tr.r-form td{background:var(--soft)}tr.r-form input{width:auto}
 @media print{@page{margin:10mm}.sheet{font-size:12px}.sh-top{padding:14px 20px}.sh-top .lg img{height:34px}.sh-meta{padding:12px 20px;gap:12px}.sh-box{padding:9px 12px}.sh-tbl{padding:0 20px}.sh-tbl td{padding:6px 10px}.sh-end{padding:12px 20px 2px}.sh-tot td{padding:4px 10px}.sh-terms{margin:6px 20px 0;padding:8px 12px}.sh-foot{margin-top:10px;padding:10px 20px}.hd,.wrap>*:not(#quote),.noprint{display:none!important}body{background:#fff}.wrap{padding:0;max-width:none}.sheet{border:0;border-radius:0}}
 </style>
 </head>
@@ -164,6 +173,7 @@ tr.disc-row td{color:#1b7f3b;font-weight:500}
         <label class='lb'>Phone / WhatsApp<input type='tel' id='q_ph' placeholder='98xxxxxxxx'></label>
         <label class='lb'>Email<input type='email' id='q_em' placeholder='name@company.com'></label>
         <label class='lb'>Valid for (days)<input type='number' id='q_val' min='1' value='15'></label>
+        <label class='lb'>Prepared by (your name)<input type='text' id='q_by' placeholder='e.g. Amit' maxlength='40'></label>
         <label class='lb wide'>Company address<textarea id='q_addr' rows='2' placeholder='Building, street, city, state, PIN'></textarea></label>
       </div>
 
@@ -199,6 +209,27 @@ tr.disc-row td{color:#1b7f3b;font-weight:500}
     </div>
   </div>
   <div id='quote' hidden></div>
+
+  <div class='card' id='recCard'>
+    <div class='rtop'><div><h2 style='margin:0'>Records</h2><span class='note'>Every quotation and proforma you create is saved here, in this browser only.</span></div>
+      <div class='row'><button class='btn sm' id='r_csv'>Export to Excel (CSV)</button><button class='btn sm' id='r_bak'>Download backup</button>
+        <label class='btn sm' style='cursor:pointer'>Import / merge backups<input type='file' id='r_imp' accept='.json,application/json' multiple hidden></label></div></div>
+    <div class='rk'>
+      <div class='kpi'><span>Documents created</span><b id='r_n'>0</b><small id='r_qp'></small></div>
+      <div class='kpi'><span>Total amount quoted</span><b id='r_amt'>₹0</b><small>incl. GST</small></div>
+      <div class='kpi'><span>Converted to sales</span><b id='r_sn'>0</b><small>Conversion rate <span id='r_rate'>–</span></small></div>
+      <div class='kpi main'><span>Sales value</span><b id='r_sa'>₹0</b><small>incl. GST</small></div>
+    </div>
+    <div class='row rfil'>
+      <input type='search' id='r_q' placeholder='Search customer, company, phone, GSTIN, number…'>
+      <select id='r_type'><option value=''>All types</option><option>Quotation</option><option>Proforma Invoice</option></select>
+      <select id='r_status'><option value=''>All status</option><option value='open'>Open</option><option value='sale'>Sale</option><option value='lost'>Lost</option></select>
+      <input type='month' id='r_month' title='Month'>
+      <select id='r_by'></select>
+    </div>
+    <div class='scroll'><table class='rtbl'><thead><tr><th>Date</th><th>Number</th><th>Customer</th><th>Prepared by</th><th class='n'>Total</th><th>Status</th><th>Actions</th></tr></thead><tbody id='r_rows'></tbody></table></div>
+    <p class='note' id='r_msg'>Totals follow the filters above. Records stay on this computer: use <b>Download backup</b> regularly, and <b>Import / merge</b> to combine backups from several salespeople into one view.</p>
+  </div>
 
   <details class="card src">
     <summary><h2>How the amount is calculated</h2><span class="note">Click to view</span></summary>
@@ -409,7 +440,8 @@ function mkQuote(){
   var tot=[tr('Subtotal',inr(L.sub))];
   if(L.disc>0){tot.push(tr(dl,'− '+inr(L.disc),'disc'));tot.push(tr('Taxable amount',inr(L.tax)));}
   tot.push(tr('GST '+gp+'%',inr(L.g)),tr('Total payable',inr(L.tax+L.g),'grand'));
-  var logo=el('img',{src:cfg.logo||LOGO,alt:'Munim'});
+  var by=$('q_by').value.trim();
+  var logo=el('img',{src:cfg.logo||LOGO,alt:'Munim','data-logo':'1'});
   var q=$('quote');q.innerHTML='';q.hidden=false;
   var bar=el('div',{cls:'noprint qbar'},[
     el('button',{cls:'btn pri',text:'Print / Save as PDF',onclick:function(){try{window.print();}catch(e){qm('Printing is blocked here. Use Download, then print the file.');}}}),
@@ -422,7 +454,7 @@ function mkQuote(){
     el('table',{},[el('tbody',{},[['Account name',B.holder],['Account no.',B.acno],['Bank',B.bank+(B.branch?', '+B.branch:'')],['IFSC',B.ifsc]].filter(function(r){return r[1];}).map(function(r){return el('tr',{},[el('td',{text:r[0]}),el('td',{},[el('b',{text:r[1]})])]);}))])]):el('div');
   var sheet=el('div',{cls:'sheet'},[
     el('div',{cls:'sh-top'},[el('div',{cls:'lg'},[logo]),
-      el('div',{cls:'dt'},[el('h2',{text:type.toUpperCase()}),el('div',{text:'No. '+num}),el('div',{text:'Date: '+f(d)}),el('div',{text:'Valid till: '+f(till)})])]),
+      el('div',{cls:'dt'},[el('h2',{text:type.toUpperCase()}),el('div',{text:'No. '+num}),el('div',{text:'Date: '+f(d)}),el('div',{text:'Valid till: '+f(till)}),by?el('div',{text:'Prepared by: '+by}):null])]),
     el('div',{cls:'sh-meta'},[
       el('div',{cls:'sh-box'},[el('div',{cls:'k',text:'From'}),el('div',{cls:'nm',text:C.name}),C.gstin?el('div',{},['GSTIN: ',el('b',{text:C.gstin})]):null,C.address?el('div',{cls:'ad',text:C.address}):null,el('div',{cls:'muted',text:[C.email,C.phone].filter(Boolean).join(' · ')})]),
       el('div',{cls:'sh-box'},[el('div',{cls:'k',text:'Prepared for'}),el('div',{cls:'nm',text:nm}),co?el('div',{text:co}):null,gs?el('div',{},['GSTIN: ',el('b',{text:gs})]):null,ad?el('div',{cls:'ad',text:ad}):null,(ph||em)?el('div',{cls:'muted',text:[ph,em].filter(Boolean).join(' · ')}):null])]),
@@ -430,11 +462,79 @@ function mkQuote(){
     el('div',{cls:'sh-end'},[bankBox,el('div',{cls:'sh-tot'},[el('table',{},[el('tbody',{},tot)])])]),
     el('div',{cls:'sh-terms',text:terms}),
     el('div',{cls:'sh-foot'},[el('span',{},[el('b',{text:C.name})]),el('span',{text:[C.email,C.phone,C.web].filter(Boolean).join(' · ')})])]);
+  var keep=sheet.cloneNode(true);keep.querySelectorAll('img[data-logo]').forEach(function(i){i.removeAttribute('src');});
+  saveRecord({num:num,type:type,date:d.toISOString(),till:till.toISOString(),by:by,cust:{nm:nm,co:co,gs:gs,ph:ph,em:em,ad:ad},items:items,sub:L.sub,disc:L.disc,dl:L.disc>0?dl:'',g:L.g,gp:gp,total:L.tax+L.g,html:keep.outerHTML});
+  bar.appendChild(el('span',{cls:'note',text:'✓ Saved to Records'}));
   q.appendChild(bar);q.appendChild(sheet);q.scrollIntoView({behavior:'smooth'});
 }
 document.querySelectorAll('#q_seg button').forEach(function(b){b.onclick=function(){document.querySelectorAll('#q_seg button').forEach(function(x){x.classList.toggle('on',x===b);});$('q_type').value=b.getAttribute('data-v');};});
 $('q_all').onclick=function(){HIDE={};renderPick();};
 $('q_none').onclick=function(){qLines().forEach(function(l){if(!l.base)HIDE[l.k]=1;});renderPick();};
+/* ---------- Records (kept in this browser) ---------- */
+var RKEY='munim_records_v1',REC=[],RF={q:'',type:'',status:'',month:'',by:''},RSALE=null,RDEL=null;
+function rLoad(){try{var v=JSON.parse(localStorage.getItem(RKEY)||'[]');REC=Array.isArray(v)?v:[];}catch(e){REC=[];}}
+function rSave(){try{localStorage.setItem(RKEY,JSON.stringify(REC));return true;}catch(e){$('r_msg').textContent='Could not save: browser storage is full or blocked. Download a backup.';return false;}}
+function rBy(){try{return localStorage.getItem('munim_prepared_by')||'';}catch(e){return '';}}
+function saveRecord(r){rLoad();r.status='open';r.id=r.num;REC.unshift(r);rSave();renderRecords();}
+function fd(iso){try{return new Date(iso).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return '';}}
+function rFiltered(){var q=RF.q.toLowerCase();return REC.filter(function(r){
+  if(RF.type&&r.type!==RF.type)return false;if(RF.status&&r.status!==RF.status)return false;
+  if(RF.month&&String(r.date).slice(0,7)!==RF.month)return false;if(RF.by&&(r.by||'')!==RF.by)return false;
+  if(q){var c=r.cust||{};var hay=[r.num,c.nm,c.co,c.gs,c.ph,c.em,r.by].join(' ').toLowerCase();if(hay.indexOf(q)<0)return false;}
+  return true;});}
+function renderRecords(){
+  var box=$('r_rows');if(!box)return;rLoad();
+  var bys={};REC.forEach(function(r){if(r.by)bys[r.by]=1;});
+  var bsel=$('r_by'),cur=RF.by;bsel.innerHTML='';bsel.appendChild(el('option',{value:'',text:'Everyone'}));Object.keys(bys).sort().forEach(function(b){bsel.appendChild(el('option',{value:b,text:b}));});bsel.value=cur;
+  var L=rFiltered(),qt=0,pi=0,amt=0,sn=0,sa=0;
+  L.forEach(function(r){if(r.type==='Quotation')qt++;else pi++;amt+=N(r.total);if(r.status==='sale'){sn++;sa+=N(r.saleAmt!=null?r.saleAmt:r.total);}});
+  $('r_n').textContent=L.length;$('r_qp').textContent=qt+' quotations · '+pi+' proformas';
+  $('r_amt').textContent=inr(amt);$('r_sn').textContent=sn+' of '+L.length;$('r_sa').textContent=inr(sa);
+  $('r_rate').textContent=L.length?Math.round(sn*1000/L.length)/10+'%':'–';
+  box.innerHTML='';
+  if(!L.length){box.appendChild(el('tr',{},[el('td',{colspan:8,cls:'muted',style:'text-align:center;padding:18px',text:REC.length?'No records match these filters.':'No documents yet. Every quotation or proforma you create is saved here.'})]));}
+  L.forEach(function(r){var c=r.cust||{};
+    var st=r.status==='sale'?el('span',{cls:'st sale',text:'Sale ✓'}):(r.status==='lost'?el('span',{cls:'st lost',text:'Lost'}):el('span',{cls:'st open',text:'Open'}));
+    var acts=el('div',{cls:'racts'},[
+      el('button',{cls:'btn sm',text:'View',onclick:function(){viewRecord(r);}}),
+      r.status==='sale'?el('button',{cls:'btn sm',text:'Undo sale',onclick:function(){setStatus(r.id,'open');}}):el('button',{cls:'btn sm pri',text:'Mark as sale',onclick:function(){RSALE=r.id;renderRecords();}}),
+      r.status==='open'?el('button',{cls:'btn sm',text:'Lost',title:'Mark as lost',onclick:function(){setStatus(r.id,'lost');}}):null,
+      r.status==='lost'?el('button',{cls:'btn sm',text:'Reopen',onclick:function(){setStatus(r.id,'open');}}):null,
+      el('button',{cls:'btn sm del',text:RDEL===r.id?'Click again to delete':'Delete',onclick:function(){if(RDEL===r.id){REC=REC.filter(function(x){return x.id!==r.id;});RDEL=null;rSave();}else{RDEL=r.id;setTimeout(function(){if(RDEL===r.id){RDEL=null;renderRecords();}},4000);}renderRecords();}})]);
+    box.appendChild(el('tr',{cls:'r-'+r.status},[el('td',{text:fd(r.date)}),el('td',{},[el('b',{text:r.num}),el('div',{cls:'muted',style:'font-size:12px',text:r.type})]),
+      el('td',{},[el('b',{text:c.nm||'–'}),c.co?el('div',{cls:'muted',style:'font-size:12px',text:c.co}):null,c.ph?el('div',{cls:'muted',style:'font-size:12px',text:c.ph}):null]),
+      el('td',{text:r.by||'–'}),el('td',{cls:'n',text:inr(r.total)}),
+      el('td',{},[st,r.status==='sale'?el('div',{cls:'muted',style:'font-size:12px',text:fd(r.saleDate)+(r.saleAmt!=null&&Math.round(N(r.saleAmt))!==Math.round(N(r.total))?' · '+inr(r.saleAmt):'')+(r.saleRef?' · '+r.saleRef:'')}):null]),
+      el('td',{},[acts])]));
+    if(RSALE===r.id){
+      var sd=el('input',{type:'date',value:new Date().toISOString().slice(0,10)}),sa2=el('input',{type:'number',min:0,step:'any',value:Math.round(N(r.total))}),sr=el('input',{type:'text',placeholder:'Invoice no. / note (optional)',maxlength:80});
+      box.appendChild(el('tr',{cls:'r-form'},[el('td',{colspan:7},[el('div',{cls:'row'},[el('b',{text:'Mark '+r.num+' as sale:'}),
+        el('label',{cls:'lb'},['Sale date',sd]),el('label',{cls:'lb'},['Sale amount (₹, incl. GST)',sa2]),el('label',{cls:'lb'},['Invoice / note',sr]),
+        el('button',{cls:'btn pri',text:'Save sale',onclick:function(){setStatus(r.id,'sale',{saleDate:sd.value?new Date(sd.value).toISOString():new Date().toISOString(),saleAmt:N(sa2.value),saleRef:sr.value.trim()});}}),
+        el('button',{cls:'btn',text:'Cancel',onclick:function(){RSALE=null;renderRecords();}})])])]));}
+  });
+}
+function setStatus(id,st,extra){rLoad();REC.forEach(function(r){if(r.id===id){r.status=st;if(st==='sale'){r.saleDate=extra.saleDate;r.saleAmt=extra.saleAmt;r.saleRef=extra.saleRef;}else{delete r.saleDate;delete r.saleAmt;delete r.saleRef;}}});RSALE=null;rSave();renderRecords();}
+function viewRecord(r){var q=$('quote');q.innerHTML='';q.hidden=false;
+  var w=document.createElement('div');w.innerHTML=r.html||'';w.querySelectorAll('img[data-logo]').forEach(function(i){i.src=cfg.logo||LOGO;});
+  q.appendChild(el('div',{cls:'noprint qbar'},[el('b',{text:'Saved copy of '+r.num+' · '+fd(r.date)}),
+    el('button',{cls:'btn pri',text:'Print / Save as PDF',onclick:function(){try{window.print();}catch(e){}}}),
+    el('button',{cls:'btn',text:'Download',onclick:function(){dlq(r.num);}}),
+    el('button',{cls:'btn',text:'Close',onclick:function(){q.hidden=true;q.innerHTML='';$('recCard').scrollIntoView({behavior:'smooth'});}}),el('span',{id:'qmsg',cls:'note'})]));
+  if(w.firstChild)q.appendChild(w.firstChild);q.scrollIntoView({behavior:'smooth'});}
+function csvCell(v){v=v==null?'':String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+function saveBlob(name,data,type){var a=el('a',{href:URL.createObjectURL(new Blob([data],{type:type})),download:name});document.body.appendChild(a);a.click();a.remove();}
+$('r_csv').onclick=function(){var H=['Date','Number','Type','Prepared by','Customer','Company','GSTIN','Phone','Email','Address','Items','Subtotal','Discount','GST','Total payable','Status','Sale date','Sale amount','Invoice / note','Valid till'];
+  var rows=[H].concat(rFiltered().map(function(r){var c=r.cust||{};return [fd(r.date),r.num,r.type,r.by,c.nm,c.co,c.gs,c.ph,c.em,c.ad,(r.items||[]).map(function(x){return x[0]+' ('+x[2]+') '+Math.round(x[3]);}).join('; '),Math.round(N(r.sub)),Math.round(N(r.disc)),Math.round(N(r.g)),Math.round(N(r.total)),r.status==='sale'?'Sale':(r.status==='lost'?'Lost':'Open'),r.saleDate?fd(r.saleDate):'',r.saleAmt!=null?Math.round(N(r.saleAmt)):'',r.saleRef||'',fd(r.till)];}));
+  saveBlob('munim-records-'+new Date().toISOString().slice(0,10)+'.csv','﻿'+rows.map(function(r){return r.map(csvCell).join(',');}).join('\r\n'),'text/csv');};
+$('r_bak').onclick=function(){rLoad();saveBlob('munim-records-backup-'+(rBy()||'me').replace(/[^a-z0-9]+/gi,'-')+'-'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify({kind:'munim-records',v:1,records:REC}),'application/json');};
+$('r_imp').onchange=function(){var fs=Array.prototype.slice.call(this.files),added=0,upd=0,n=fs.length,self=this;if(!n)return;rLoad();
+  fs.forEach(function(f){var rd=new FileReader();rd.onload=function(){try{var d=JSON.parse(rd.result),list=Array.isArray(d)?d:d.records;
+      (list||[]).forEach(function(x){if(!x||!x.num)return;x.id=x.id||x.num;var i=-1;REC.forEach(function(r,k){if(r.id===x.id)i=k;});if(i<0){REC.push(x);added++;}else if(x.status!=='open'&&REC[i].status==='open'){REC[i]=x;upd++;}});}catch(e){}
+    if(--n===0){REC.sort(function(a,b){return String(b.date).localeCompare(String(a.date));});rSave();renderRecords();$('r_msg').textContent='Merged: '+added+' new record(s), '+upd+' updated.';self.value='';}};rd.readAsText(f);});};
+['r_q','r_type','r_status','r_month','r_by'].forEach(function(id){var e=$(id);e.oninput=e.onchange=function(){RF[{r_q:'q',r_type:'type',r_status:'status',r_month:'month',r_by:'by'}[id]]=e.value;renderRecords();};});
+$('q_by').value=rBy();$('q_by').oninput=function(){try{localStorage.setItem('munim_prepared_by',this.value.trim());}catch(e){}};
+renderRecords();
 $('q_make').onclick=mkQuote;
 renderAll();
 /* Live rates: load config.json (edited from admin.html). Falls back to DEF above. */
