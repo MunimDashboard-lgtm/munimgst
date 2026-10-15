@@ -1,0 +1,145 @@
+{
+  "gst": 0.18,
+  "log": [],
+  "valid": 15,
+  "logo": "",
+  "terms": "Prices exclude GST unless stated. One-time fees are payable once; yearly fees renew each year. This document is not a tax invoice.",
+  "rules": [
+    {
+      "id": "base",
+      "name": "Platform base",
+      "type": "flat",
+      "yearly": 3599,
+      "once": 0,
+      "note": "Includes 3 PANs, 2 users, 1 GSTIN, 6,000 invoices"
+    },
+    {
+      "id": "turn",
+      "name": "Annual turnover",
+      "type": "band",
+      "def": 1,
+      "opts": [
+        {
+          "l": "Up to ₹5 Cr",
+          "f": 0
+        },
+        {
+          "l": "₹5–20 Cr",
+          "f": 1500
+        },
+        {
+          "l": "₹20–50 Cr",
+          "f": 3000
+        },
+        {
+          "l": "₹50–100 Cr",
+          "f": 6000
+        },
+        {
+          "l": "₹100–500 Cr",
+          "f": 12000
+        },
+        {
+          "l": "Above ₹500 Cr",
+          "f": 25000
+        }
+      ]
+    },
+    {
+      "id": "inv",
+      "name": "Invoices per year (sales + purchase)",
+      "type": "meter",
+      "incl": 6000,
+      "rate": 0.1,
+      "per": "yearly",
+      "unit": "invoice",
+      "def": 15000
+    },
+    {
+      "id": "bs",
+      "name": "B2B sales invoices per year",
+      "type": "meter",
+      "incl": 3000,
+      "rate": 0.2,
+      "per": "yearly",
+      "unit": "invoice",
+      "def": 8000
+    },
+    {
+      "id": "bp",
+      "name": "B2B purchase invoices per year",
+      "type": "meter",
+      "incl": 3000,
+      "rate": 0.15,
+      "per": "yearly",
+      "unit": "invoice",
+      "def": 6000
+    },
+    {
+      "id": "usr",
+      "name": "Users (including admin)",
+      "type": "meter",
+      "incl": 2,
+      "rate": 999,
+      "per": "yearly",
+      "unit": "user",
+      "def": 3
+    },
+    {
+      "id": "gst",
+      "name": "GST numbers (GSTINs)",
+      "type": "meter",
+      "incl": 1,
+      "rate": 63,
+      "per": "yearly",
+      "unit": "GSTIN",
+      "def": 2
+    },
+    {
+      "id": "pan",
+      "name": "PANs (companies)",
+      "type": "meter",
+      "incl": 3,
+      "rate": 550,
+      "per": "yearly",
+      "unit": "PAN",
+      "def": 1
+    },
+    {
+      "id": "ew",
+      "name": "Unlimited e-way bills",
+      "type": "toggle",
+      "yearly": 2500,
+      "once": 0,
+      "def": true
+    },
+    {
+      "id": "ei",
+      "name": "Unlimited e-invoices",
+      "type": "toggle",
+      "yearly": 5000,
+      "once": 0,
+      "def": true
+    },
+    {
+      "id": "cd",
+      "name": "Integration consultancy (person-days)",
+      "type": "meter",
+      "incl": 0,
+      "rate": 7500,
+      "per": "once",
+      "unit": "person-day",
+      "def": 2
+    },
+    {
+      "id": "e2e",
+      "name": "Integration end to end",
+      "type": "toggle",
+      "yearly": 11250,
+      "once": 75000,
+      "def": false,
+      "note": "One-time project fee + 15% yearly maintenance"
+    }
+  ],
+  "updated": "2026-10-15T10:58:54.149Z"
+}
