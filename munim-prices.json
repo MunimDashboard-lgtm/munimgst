@@ -2,14 +2,26 @@
   "gst": 0.18,
   "log": [
     {
-      "t": 1793098997088,
-      "m": "pricing"
+      "t": 1793106323681,
+      "m": "Updated prices"
     }
   ],
-  "valid": 7,
+  "valid": 15,
   "logo": "",
   "terms": "Prices exclude GST unless stated. One-time fees are payable once; yearly fees renew each year. This document is not a tax invoice.",
   "rules": [
+    {
+      "id": "base",
+      "name": "Platform base",
+      "type": "flat",
+      "yearly": 3599,
+      "once": 0,
+      "note": "Includes 3 PANs, 2 users, 1 GSTIN, 6,000 invoices",
+      "mrp_yearly": 9999,
+      "normal_yearly": 3599,
+      "mrp_once": 0,
+      "normal_once": 0
+    },
     {
       "id": "turn",
       "name": "Annual turnover",
@@ -17,187 +29,160 @@
       "def": 0,
       "opts": [
         {
-          "l": "Up to ₹5 Cr",
-          "f": 5999,
-          "mrp_f": 19999,
-          "normal_f": 5999,
-          "sale_f": 5000
-        },
-        {
           "l": "₹5–20 Cr",
-          "f": 11999,
-          "mrp_f": 39999,
-          "normal_f": 11999,
-          "sale_f": 9999
+          "f": 1613,
+          "mrp_f": 9999,
+          "normal_f": 1613
         },
         {
           "l": "₹20–50 Cr",
-          "f": 17000,
-          "mrp_f": 59999,
-          "normal_f": 17000,
-          "sale_f": 15000
+          "f": 3000,
+          "mrp_f": 11999,
+          "normal_f": 3000
         },
         {
           "l": "₹50–100 Cr",
-          "f": 20000,
-          "mrp_f": 79999,
-          "normal_f": 20000,
-          "sale_f": 18000
+          "f": 6000,
+          "mrp_f": 19000,
+          "normal_f": 6000
         },
         {
           "l": "₹100–500 Cr",
-          "f": 30000,
-          "mrp_f": 99999,
-          "normal_f": 30000,
-          "sale_f": 25000
+          "f": 12000,
+          "mrp_f": 120000,
+          "normal_f": 12000
         },
         {
           "l": "Above ₹500 Cr",
-          "f": 50000,
-          "mrp_f": 149999,
-          "normal_f": 50000,
-          "sale_f": 40000
+          "f": 25000,
+          "mrp_f": 250000,
+          "normal_f": 25000
         }
       ]
-    },
-    {
-      "id": "base",
-      "name": "Platform base",
-      "type": "flat",
-      "yearly": 5999,
-      "once": 0,
-      "note": "Includes 3 PANs, 2 users, 1 GSTIN, 6,000 invoices",
-      "mrp_yearly": 19999,
-      "normal_yearly": 5999,
-      "sale_yearly": 4999,
-      "mrp_once": 0,
-      "normal_once": 0,
-      "sale_once": 0
     },
     {
       "id": "bs",
       "name": "B2B sales invoices per year",
       "type": "meter",
       "incl": 3000,
-      "rate": 1.5,
+      "rate": 0.5,
       "per": "yearly",
       "unit": "invoice",
       "def": 8000,
-      "mrp_rate": 3,
-      "normal_rate": 1.5,
-      "sale_rate": 0.5
+      "mrp_rate": 0.5,
+      "normal_rate": 0.5
+    },
+    {
+      "id": "inv",
+      "name": "Invoices per year (sales + purchase)",
+      "type": "meter",
+      "incl": 6000,
+      "rate": 0.3,
+      "per": "yearly",
+      "unit": "invoice",
+      "def": 15000,
+      "mrp_rate": 0.3,
+      "normal_rate": 0.3
     },
     {
       "id": "bp",
       "name": "B2B purchase invoices per year",
       "type": "meter",
       "incl": 3000,
-      "rate": 1.5,
+      "rate": 0.15,
       "per": "yearly",
       "unit": "invoice",
       "def": 6000,
-      "mrp_rate": 3,
-      "normal_rate": 1.5,
-      "sale_rate": 0.5
+      "mrp_rate": 0.15,
+      "normal_rate": 0.15
     },
     {
       "id": "usr",
       "name": "Users (including admin)",
       "type": "meter",
-      "incl": 3,
-      "rate": 2999,
+      "incl": 2,
+      "rate": 999,
       "per": "yearly",
       "unit": "user",
       "def": 3,
-      "mrp_rate": 4999,
-      "normal_rate": 2999,
-      "sale_rate": 999
+      "mrp_rate": 999,
+      "normal_rate": 999
     },
     {
       "id": "gst",
       "name": "GST numbers (GSTINs)",
       "type": "meter",
       "incl": 1,
-      "rate": 299,
+      "rate": 70,
       "per": "yearly",
       "unit": "GSTIN",
       "def": 2,
-      "mrp_rate": 499,
-      "normal_rate": 299,
-      "sale_rate": 110
+      "mrp_rate": 70,
+      "normal_rate": 70
     },
     {
       "id": "pan",
       "name": "PANs (companies)",
       "type": "meter",
-      "incl": 0,
-      "rate": 9999,
+      "incl": 3,
+      "rate": 100000,
       "per": "yearly",
       "unit": "PAN",
-      "def": 0,
-      "mrp_rate": 19999,
-      "normal_rate": 9999,
-      "sale_rate": 5000
+      "def": 1,
+      "mrp_rate": 100000,
+      "normal_rate": 100000
     },
     {
       "id": "ew",
       "name": "Unlimited e-way bills",
       "type": "toggle",
-      "yearly": 2999,
+      "yearly": 2500,
       "once": 0,
       "def": true,
-      "mrp_yearly": 6999,
-      "normal_yearly": 2999,
-      "sale_yearly": 1899,
+      "mrp_yearly": 2500,
+      "normal_yearly": 2500,
       "mrp_once": 0,
-      "normal_once": 0,
-      "sale_once": 0
+      "normal_once": 0
     },
     {
       "id": "ei",
       "name": "Unlimited e-invoices",
       "type": "toggle",
-      "yearly": 2999,
+      "yearly": 5000,
       "once": 0,
       "def": true,
-      "mrp_yearly": 6999,
-      "normal_yearly": 2999,
-      "sale_yearly": 1899,
+      "mrp_yearly": 15000,
+      "normal_yearly": 5000,
       "mrp_once": 0,
-      "normal_once": 0,
-      "sale_once": 0
+      "normal_once": 0
     },
     {
       "id": "cd",
       "name": "Integration consultancy (person-days)",
       "type": "meter",
       "incl": 0,
-      "rate": 39999,
-      "mrp_rate": 49999,
-      "normal_rate": 39999,
-      "sale_rate": 15999,
-      "per": "yearly",
-      "unit": "unit",
-      "def": 1
+      "rate": 7500,
+      "per": "once",
+      "unit": "person-day",
+      "def": 2,
+      "mrp_rate": 7500,
+      "normal_rate": 7500
     },
     {
       "id": "e2e",
       "name": "Integration end to end",
       "type": "toggle",
-      "yearly": 0,
-      "once": 99999,
-      "mrp_yearly": 0,
-      "normal_yearly": 0,
-      "sale_yearly": 0,
-      "mrp_once": 149999,
-      "normal_once": 99999,
-      "sale_once": 50000,
+      "yearly": 11250,
+      "once": 75000,
       "def": false,
-      "note": "One-time project fee + 15% yearly maintenance"
+      "note": "One-time project fee + 15% yearly maintenance",
+      "mrp_yearly": 11250,
+      "normal_yearly": 11250,
+      "mrp_once": 75000,
+      "normal_once": 75000
     }
   ],
-  "updated": "2026-10-27T11:03:17.088Z",
-  "mode": "normal",
+  "updated": "2026-10-27T13:05:23.681Z",
   "company": {
     "name": "Munim ERP Private Limited",
     "gstin": "24AAPCM8554R1ZF",
@@ -211,7 +196,8 @@
     "holder": "MUNIM ERP PRIVATE LIMITED",
     "acno": "99912220001222",
     "bank": "HDFC BANK",
-    "ifsc": "HDFC0000533",
+    "ifsc": "IDFC0000533",
     "branch": ""
-  }
+  },
+  "mode": "normal"
 }
