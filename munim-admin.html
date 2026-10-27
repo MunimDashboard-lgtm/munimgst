@@ -51,6 +51,10 @@ details summary{cursor:pointer;color:var(--accent);font-size:13px}details ol{mar
 .logo-prev{height:40px;max-width:180px;object-fit:contain;border:1px dashed var(--line);border-radius:6px;padding:3px;background:#fff}
 .addbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 .empty{padding:20px;text-align:center;color:var(--muted)}
+.trio{flex:1 1 100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--soft)}
+.trio-t{font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px}
+.trio input[type=number]{width:150px}
+@media (max-width:620px){.trio input[type=number]{width:100%}.trio label.f{flex:1 1 100%}}
 </style>
 </head>
 <body>
@@ -97,6 +101,7 @@ details summary{cursor:pointer;color:var(--accent);font-size:13px}details ol{mar
       <div class="row">
         <label class="f">GST rate (%)<input type="number" id="g_gst" min="0" max="100" step="0.01"></label>
         <label class="f">Quotation valid for (days)<input type="number" id="g_valid" min="1" step="1"></label>
+        <label class="f">Price list customers are charged<select id="g_mode" class="w-m"><option value="mrp">MRP</option><option value="normal">Normal day price</option><option value="sale">Sales day price</option></select></label>
       </div>
       <label class="f" style="margin-top:10px">Terms printed on quotations<textarea id="g_terms" maxlength="800"></textarea></label>
       <div class="row" style="margin-top:10px;align-items:center">
@@ -150,6 +155,7 @@ details summary{cursor:pointer;color:var(--accent);font-size:13px}details ol{mar
         <button class="btn sm" data-add="meter">+ Per-unit (quantity)</button>
         <button class="btn sm" data-add="band">+ Choice list (bands)</button>
         <button class="btn sm" data-add="toggle">+ Yes/No add-on</button>
+        <button class="btn sm" data-add="feature">+ Feature</button>
       </div>
       <details style="margin-top:12px"><summary>What do the item types mean?</summary>
         <ol>
@@ -216,10 +222,11 @@ function msg(id,t,cls){var m=$(id);m.textContent=t||'';m.className='msg'+(cls?' 
 /* ---------- data ---------- */
 function blank(type){
   var id=type+'_'+Math.random().toString(36).slice(2,7);
-  if(type==='flat')return{id:id,name:'New fixed fee',type:'flat',yearly:0,once:0,note:''};
-  if(type==='band')return{id:id,name:'New choice list',type:'band',def:0,opts:[{l:'Option 1',f:0},{l:'Option 2',f:1000}]};
-  if(type==='meter')return{id:id,name:'New per-unit item',type:'meter',incl:0,rate:0,per:'yearly',unit:'unit',def:1};
-  return{id:id,name:'New add-on',type:'toggle',yearly:0,once:0,def:false,note:''};
+  if(type==='flat')return{id:id,name:'New fixed fee',type:'flat',yearly:0,once:0,mrp_yearly:0,normal_yearly:0,sale_yearly:0,mrp_once:0,normal_once:0,sale_once:0,note:''};
+  if(type==='band')return{id:id,name:'New choice list',type:'band',def:0,opts:[{l:'Option 1',f:0,mrp_f:0,normal_f:0,sale_f:0},{l:'Option 2',f:1000,mrp_f:1000,normal_f:1000,sale_f:1000}]};
+  if(type==='meter')return{id:id,name:'New per-unit item',type:'meter',incl:0,rate:0,mrp_rate:0,normal_rate:0,sale_rate:0,per:'yearly',unit:'unit',def:1};
+  if(type==='feature')return{id:'feat_'+Math.random().toString(36).slice(2,7),name:'New feature',type:'toggle',yearly:0,once:0,mrp_yearly:0,normal_yearly:0,sale_yearly:0,mrp_once:0,normal_once:0,sale_once:0,def:false,note:''};
+  return{id:id,name:'New add-on',type:'toggle',yearly:0,once:0,mrp_yearly:0,normal_yearly:0,sale_yearly:0,mrp_once:0,normal_once:0,sale_once:0,def:false,note:''};
 }
 function convert(r,type){var n=blank(type);n.id=r.id;n.name=r.name;if(r.note)n.note=r.note;return n;}
 function snapshot(){return JSON.stringify(S);}
@@ -245,13 +252,20 @@ function validate(){
 function preview(){
   var rt=0,ot=0;
   S.rules.forEach(function(r){
-    if(r.type==='flat'){rt+=N(r.yearly);ot+=N(r.once);}
-    else if(r.type==='band'){var o=r.opts[r.def]||r.opts[0];rt+=o?N(o.f):0;}
-    else if(r.type==='meter'){var q=Math.max(N(r.def)-N(r.incl),0)*N(r.rate);if(r.per==='once')ot+=q;else rt+=q;}
-    else if(r.def){rt+=N(r.yearly);ot+=N(r.once);}
+    if(r.type==='flat'){rt+=AP(r,'yearly');ot+=AP(r,'once');}
+    else if(r.type==='band'){var o=r.opts[r.def]||r.opts[0];rt+=o?AP(o,'f'):0;}
+    else if(r.type==='meter'){var q=Math.max(N(r.def)-N(r.incl),0)*AP(r,'rate');if(r.per==='once')ot+=q;else rt+=q;}
+    else if(r.def){rt+=AP(r,'yearly');ot+=AP(r,'once');}
   });
   var g=(rt+ot)*S.gst;
   $('p_rec').textContent=inr(rt);$('p_one').textContent=inr(ot);$('p_first').textContent=inr(rt+ot+g);$('p_y2').textContent=inr(rt*(1+S.gst));
+  var cmp=$('p_modes');
+  if(!cmp){var y2=$('p_y2');if(y2&&y2.parentNode&&y2.parentNode.parentNode){cmp=el('div',{id:'p_modes',cls:'note',style:'margin-top:8px;line-height:1.8'});y2.parentNode.parentNode.appendChild(cmp);}}
+  if(cmp){var tm=modeTotal('mrp'),tn=modeTotal('normal'),ts=modeTotal('sale'),act=(S.mode||'normal');
+    cmp.innerHTML='';
+    [['mrp','MRP',tm],['normal','Normal day',tn],['sale','Sales day',ts]].forEach(function(x){
+      cmp.appendChild(el('div',{text:(x[0]===act?'● ':'○ ')+x[1]+': '+inr(x[2])+(x[0]===act?'  (in use)':''),style:x[0]===act?'font-weight:600;color:var(--text)':''}));});
+    if(tm>ts)cmp.appendChild(el('div',{style:'margin-top:4px',text:'Sales day saves '+inr(tm-ts)+' off MRP.'}));}
 }
 
 /* ---------- form builders ---------- */
@@ -259,6 +273,28 @@ function num(label,obj,key,opt){opt=opt||{};
   var i=el('input',{type:'number',min:0,step:opt.step||'any',value:obj[key]});
   i.oninput=function(){var v=i.value===''?NaN:Number(i.value);i.classList.toggle('bad',!(v>=0));obj[key]=v>=0?v:0;if(opt.after)opt.after();setDirty();};
   return el('label',{cls:'f'},[label,i]);}
+function AP(o,k){var m=(S&&S.mode)||'normal';var a=o[m+'_'+k];return N(a!=null&&a!==''?a:o[k]);}
+function seed3(obj,key){if(obj['mrp_'+key]==null)obj['mrp_'+key]=N(obj[key]);if(obj['normal_'+key]==null)obj['normal_'+key]=N(obj[key]);if(obj['sale_'+key]==null)obj['sale_'+key]=N(obj[key]);}
+function pnum(label,obj,key,after){var i=el('input',{type:'number',min:0,step:'any',value:(obj[key]==null?0:obj[key])});
+  i.oninput=function(){var v=i.value===''?NaN:Number(i.value);i.classList.toggle('bad',!(v>=0));obj[key]=v>=0?v:0;if(after)after();setDirty();};
+  return el('label',{cls:'f'},[label,i]);}
+function trio(title,obj,key,after){seed3(obj,key);
+  return el('div',{cls:'trio'},[el('div',{cls:'trio-t',text:title}),
+    el('div',{cls:'row'},[pnum('MRP (₹)',obj,'mrp_'+key,after),pnum('Normal day price (₹)',obj,'normal_'+key,after),pnum('Sales day price (₹)',obj,'sale_'+key,after)])]);}
+function modeTotal(m){if(!S||!S.rules)return 0;var om=S.mode;S.mode=m;var t=0;
+  S.rules.forEach(function(r){
+    if(r.type==='flat'){t+=AP(r,'yearly')+AP(r,'once');}
+    else if(r.type==='band'){var o=r.opts[r.def]||r.opts[0];t+=o?AP(o,'f'):0;}
+    else if(r.type==='meter'){t+=Math.max(N(r.def)-N(r.incl),0)*AP(r,'rate');}
+    else if(r.def){t+=AP(r,'yearly')+AP(r,'once');}});
+  S.mode=om;return t;}
+function applyMode(c){var m=c.mode||'normal';
+  function pick(o,k){var a=o[m+'_'+k];return N(a!=null&&a!==''?a:o[k]);}
+  (c.rules||[]).forEach(function(r){
+    if(r.type==='band'){(r.opts||[]).forEach(function(o){o.f=pick(o,'f');});}
+    else if(r.type==='meter'){r.rate=pick(r,'rate');}
+    else{r.yearly=pick(r,'yearly');r.once=pick(r,'once');}});
+  return c;}
 function txt(label,obj,key,cls,after){var i=el('input',{type:'text',value:esc(obj[key]),cls:cls||'w-m'});
   i.oninput=function(){obj[key]=i.value;if(after)after();setDirty();};return el('label',{cls:'f'},[label,i]);}
 function chk(label,obj,key){var i=el('input',{type:'checkbox',checked:obj[key]});i.onchange=function(){obj[key]=i.checked;setDirty();};return el('label',{cls:'chk'},[i,label]);}
@@ -266,10 +302,10 @@ function sel(label,obj,key,opts,onch){var s=el('select',{},opts.map(function(o){
   s.onchange=function(){obj[key]=s.value;if(onch)onch(s.value);setDirty();};return el('label',{cls:'f'},[label,s]);}
 var TYPES={flat:'Fixed fee',meter:'Per-unit',band:'Choice list',toggle:'Yes/No add-on'};
 function summary(r){
-  if(r.type==='flat')return inr(r.yearly)+'/yr'+(r.once?' + '+inr(r.once)+' once':'');
+  if(r.type==='flat')return inr(AP(r,'yearly'))+'/yr'+(AP(r,'once')?' + '+inr(AP(r,'once'))+' once':'');
   if(r.type==='band')return r.opts.length+' options';
-  if(r.type==='meter')return '₹'+(Number.isInteger(N(r.rate))?N(r.rate).toLocaleString('en-IN'):N(r.rate).toFixed(2))+' per '+r.unit+' above '+N(r.incl).toLocaleString('en-IN')+(r.per==='once'?' · one-time':' · yearly');
-  return (r.yearly?inr(r.yearly)+'/yr':'')+(r.yearly&&r.once?' + ':'')+(r.once?inr(r.once)+' once':'')+(r.def?' · ticked by default':'');
+  if(r.type==='meter')return '₹'+(Number.isInteger(AP(r,'rate'))?AP(r,'rate').toLocaleString('en-IN'):AP(r,'rate').toFixed(2))+' per '+r.unit+' above '+N(r.incl).toLocaleString('en-IN')+(r.per==='once'?' · one-time':' · yearly');
+  return (AP(r,'yearly')?inr(AP(r,'yearly'))+'/yr':'')+(AP(r,'yearly')&&AP(r,'once')?' + ':'')+(AP(r,'once')?inr(AP(r,'once'))+' once':'')+(r.def?' · ticked by default':'');
 }
 
 function renderRules(){
@@ -294,14 +330,14 @@ function renderRules(){
     ]);
     body.appendChild(basic);
     var f=el('div',{cls:'row',style:'margin-top:10px'});
-    if(r.type==='flat'){f.appendChild(num('Yearly fee (₹)',r,'yearly',{after:refresh}));f.appendChild(num('One-time fee (₹)',r,'once',{after:refresh}));f.appendChild(txt('Description',r,'note','w-l'));}
+    if(r.type==='flat'){f.appendChild(trio('Yearly fee',r,'yearly',refresh));f.appendChild(trio('One-time fee',r,'once',refresh));f.appendChild(txt('Description',r,'note','w-l'));}
     else if(r.type==='meter'){
       f.appendChild(num('Included free',r,'incl',{after:refresh}));
-      f.appendChild(num('Price per extra unit (₹)',r,'rate',{after:refresh}));
+      f.appendChild(trio('Price per extra unit',r,'rate',refresh));
       f.appendChild(txt('Unit name (singular)',r,'unit','w-m',refresh));
       f.appendChild(sel('Billed',r,'per',[['yearly','Every year'],['once','One-time']],refresh));
       f.appendChild(num('Default quantity',r,'def'));}
-    else if(r.type==='toggle'){f.appendChild(num('Yearly fee (₹)',r,'yearly',{after:refresh}));f.appendChild(num('One-time fee (₹)',r,'once',{after:refresh}));
+    else if(r.type==='toggle'){f.appendChild(trio('Yearly fee',r,'yearly',refresh));f.appendChild(trio('One-time fee',r,'once',refresh));
       f.appendChild(txt('Description',r,'note','w-l'));f.appendChild(chk('Ticked by default',r,'def'));}
     body.appendChild(f);
     if(r.type==='band'){
@@ -309,13 +345,13 @@ function renderRules(){
       r.opts.forEach(function(o,j){
         var rad=el('input',{type:'radio',name:'def_'+r.id,checked:r.def===j,title:'Default choice'});rad.onchange=function(){r.def=j;setDirty();};
         tb.appendChild(el('tr',{},[
-          el('td',{},[txtIn(o,'l')]),el('td',{style:'width:150px'},[numIn(o,'f')]),
+          el('td',{},[txtIn(o,'l')]),el('td',{style:'width:105px'},[numIn3(o,'mrp_f','f')]),el('td',{style:'width:105px'},[numIn3(o,'normal_f','f')]),el('td',{style:'width:105px'},[numIn3(o,'sale_f','f')]),
           el('td',{style:'width:90px;white-space:nowrap'},[el('label',{cls:'chk'},[rad,'default'])]),
           el('td',{style:'width:110px;white-space:nowrap'},[
             el('button',{cls:'btn sm',text:'↑',onclick:function(){if(j>0){r.opts.splice(j-1,0,r.opts.splice(j,1)[0]);if(r.def===j)r.def=j-1;else if(r.def===j-1)r.def=j;renderRules();setDirty();}}}),' ',
             el('button',{cls:'btn sm del',text:'✕',title:'Remove option',onclick:function(){r.opts.splice(j,1);if(r.def>=r.opts.length)r.def=Math.max(0,r.opts.length-1);renderRules();setDirty();}})])
         ]));});
-      body.appendChild(el('table',{cls:'bands'},[el('thead',{},[el('tr',{},[el('td',{cls:'note',text:'Option label'}),el('td',{cls:'note',text:'Yearly fee (₹)'}),el('td'),el('td')])]),tb]));
+      body.appendChild(el('table',{cls:'bands'},[el('thead',{},[el('tr',{},[el('td',{cls:'note',text:'Option label'}),el('td',{cls:'note',text:'MRP (₹)'}),el('td',{cls:'note',text:'Normal day (₹)'}),el('td',{cls:'note',text:'Sales day (₹)'}),el('td'),el('td')])]),tb]));
       body.appendChild(el('button',{cls:'btn sm',style:'margin-top:6px',text:'+ Add option',onclick:function(){r.opts.push({l:'New option',f:0});renderRules();setDirty();}}));
     }
     var card=el('div',{cls:'rule'+(OPEN[r.id]?'':' closed')},[top,body]);
@@ -323,12 +359,14 @@ function renderRules(){
     box.appendChild(card);
     function txtIn(o,k){var x=el('input',{type:'text',value:esc(o[k])});x.oninput=function(){o[k]=x.value;setDirty();};return x;}
     function numIn(o,k){var x=el('input',{type:'number',min:0,step:'any',value:o[k]});x.oninput=function(){var v=Number(x.value);x.classList.toggle('bad',x.value===''||!(v>=0));o[k]=v>=0?v:0;setDirty();};return x;}
+    function numIn3(o,k,src){if(o[k]==null)o[k]=N(o[src]);return numIn(o,k);}
   });
 }
 var armedDel=null;
 
+$('g_mode').onchange=function(){S.mode=this.value;renderRules();setDirty();};
 function renderGeneral(){
-  $('g_gst').value=Math.round(S.gst*10000)/100;$('g_valid').value=S.valid||15;$('g_terms').value=S.terms||'';
+  $('g_gst').value=Math.round(S.gst*10000)/100;$('g_valid').value=S.valid||15;$('g_terms').value=S.terms||'';$('g_mode').value=S.mode||'normal';
   var src=S.logo||LOGO_FALLBACK;$('logoPrev').src=src;$('logoTop').src=src;
 }
 function renderAll(){renderGeneral();renderDetails();renderRules();setDirty();}
@@ -360,6 +398,13 @@ $('discardBtn').onclick=function(){S=JSON.parse(ORIG);store('munim_admin_draft',
 
 function fix(c){c.gst=N(c.gst);c.valid=N(c.valid)||15;c.terms=String(c.terms||'');c.logo=c.logo||'';c.log=Array.isArray(c.log)?c.log:[];
   c.rules=(c.rules||[]).filter(function(r){return r&&TYPES[r.type];});
+  c.mode=['mrp','normal','sale'].indexOf(c.mode)>=0?c.mode:'normal';
+  c.rules.forEach(function(r){
+    if(r.type==='band'){(r.opts||[]).forEach(function(o){['mrp_f','normal_f','sale_f'].forEach(function(k){if(o[k]==null)o[k]=N(o.f);});});}
+    else if(r.type==='meter'){['mrp_rate','normal_rate','sale_rate'].forEach(function(k){if(r[k]==null)r[k]=N(r.rate);});}
+    else{['mrp_yearly','normal_yearly','sale_yearly'].forEach(function(k){if(r[k]==null)r[k]=N(r.yearly);});
+         ['mrp_once','normal_once','sale_once'].forEach(function(k){if(r[k]==null)r[k]=N(r.once);});}
+  });
   c.company=Object.assign({},DEF_CO,c.company||{});c.bank=Object.assign({},DEF_BANK,c.bank||{});return c;}
 
 /* ---------- GitHub ---------- */
@@ -404,7 +449,7 @@ $('pubBtn').onclick=function(){
   var errs=validate();if(errs.length){setDirty();return;}
   var note=$('chgNote').value.trim()||'Updated prices';
   var btn=this;btn.disabled=true;msg('pubMsg','Publishing…');
-  var out=clone(S);out.updated=new Date().toISOString();
+  var out=applyMode(clone(S));out.updated=new Date().toISOString();
   out.log=(out.log||[]).concat([{t:Date.now(),m:note}]).slice(-20);
   gh('/contents/'+PATH+'?ref='+BRANCH+'&t='+Date.now()).then(function(j){
     var live=unb64(j.content);
