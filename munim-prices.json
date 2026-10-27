@@ -4,6 +4,10 @@
     {
       "t": 1793106323681,
       "m": "Updated prices"
+    },
+    {
+      "t": 1793110542425,
+      "m": "Updated prices"
     }
   ],
   "valid": 15,
@@ -182,7 +186,7 @@
       "normal_once": 75000
     }
   ],
-  "updated": "2026-10-27T13:05:23.681Z",
+  "updated": "2026-10-27T14:15:42.424Z",
   "company": {
     "name": "Munim ERP Private Limited",
     "gstin": "24AAPCM8554R1ZF",
@@ -196,7 +200,7 @@
     "holder": "MUNIM ERP PRIVATE LIMITED",
     "acno": "99912220001222",
     "bank": "HDFC BANK",
-    "ifsc": "IDFC0000533",
+    "ifsc": "HDFC0000533",
     "branch": ""
   },
   "mode": "normal"
